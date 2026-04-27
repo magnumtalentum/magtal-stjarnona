@@ -6,52 +6,64 @@
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 </head>
 <body style="margin: 0px; overflow: hidden;">
+
     <a-scene 
         embedded 
-        arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; sourceWidth:1280; sourceHeight:720; displayWidth:1280; displayHeight:720;"
-        vr-mode-ui="enabled: false">
+        vr-mode-ui="enabled: false"
+        arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; trackingMethod: best;">
 
         <a-marker type="pattern" url="pattern-marker.patt">
+            
             <a-text 
                 value="MAGNUM TALENTUM\nSTJARNONA AR ARCHIVE" 
                 align="center" 
                 color="#D4AF37" 
                 position="0 0.5 0" 
                 rotation="-90 0 0" 
-                width="4">
+                width="4"
+                font="https://cdn.aframe.io/fonts/Exo2Bold.fnt">
             </a-text>
 
-            <a-entity sound="src: url(vocal.mp3); autoplay: false; loop: true; volume: 1" class="audio-track"></a-entity>
-            <a-entity sound="src: url(bass.mp3); autoplay: false; loop: true; volume: 1" class="audio-track"></a-entity>
-            <a-entity sound="src: url(drum.mp3); autoplay: false; loop: true; volume: 1" class="audio-track"></a-entity>
-            <a-entity sound="src: url(other.mp3); autoplay: false; loop: true; volume: 1" class="audio-track"></a-entity>
+            <a-entity id="track1" sound="src: url(vocal.mp3); autoplay: false; loop: true; volume: 1"></a-entity>
+            <a-entity id="track2" sound="src: url(bass.mp3); autoplay: false; loop: true; volume: 1"></a-entity>
+            <a-entity id="track3" sound="src: url(drum.mp3); autoplay: false; loop: true; volume: 1"></a-entity>
+            <a-entity id="track4" sound="src: url(other.mp3); autoplay: false; loop: true; volume: 1"></a-entity>
+            
         </a-marker>
 
         <a-entity camera></a-entity>
     </a-scene>
 
     <script>
-        // Logika za aktivaciju zvuka pri detekciji markera
         const marker = document.querySelector('a-marker');
-        const audioTracks = document.querySelectorAll('.audio-track');
+        // Selektujemo sve entitete koji imaju sound komponentu
+        const sounds = document.querySelectorAll('[sound]');
 
+        // Funkcija koja pušta sve zvukove sinhronizovano
         marker.addEventListener('markerFound', () => {
-            audioTracks.forEach(track => {
-                track.components.sound.playSound();
+            sounds.forEach(s => {
+                if(s.components.sound) {
+                    s.components.sound.playSound();
+                }
             });
         });
 
+        // Funkcija koja pauzira sve zvukove kada se marker izgubi
         marker.addEventListener('markerLost', () => {
-            audioTracks.forEach(track => {
-                track.components.sound.pauseSound();
+            sounds.forEach(s => {
+                if(s.components.sound) {
+                    s.components.sound.pauseSound();
+                }
             });
         });
 
-        // "Unlock" za audio na mobilnim browserima
-        window.addEventListener('touchstart', function() {
-            audioTracks.forEach(track => {
-                if (track.components.sound && !track.components.sound.isPlaying) {
-                    // Samo inicijalizujemo zvukove, pustice ih markerFound
+        // "Magični" klik za otključavanje audia na mobilnim telefonima
+        window.addEventListener('click', () => {
+            sounds.forEach(s => {
+                if (s.components.sound && s.components.sound.audioContext) {
+                    if (s.components.sound.audioContext.state === 'suspended') {
+                        s.components.sound.audioContext.resume();
+                    }
                 }
             });
         }, { once: true });
