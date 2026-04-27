@@ -1,63 +1,111 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>MAGTAL AR</title>
-    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <title>MAGTAL_L3_HARDWIRED</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/three.js/build/ar.js"></script>
     <style>
-        /* Ovaj deo sprečava ludi zoom na Androidu */
+        body { margin: 0; overflow: hidden; background: #000; }
         #arjs-video {
-            width: 100vw !important;
-            height: 100vh !important;
-            margin-left: 0px !important;
-            object-fit: cover !important;
+            z-index: -1;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover;
         }
     </style>
 </head>
-<body style="margin: 0px; overflow: hidden;">
-    <a-scene 
-        embedded 
-        vr-mode-ui="enabled: false"
-        arjs="sourceType: webcam; debugUIEnabled: false; trackingMethod: best;">
+<body>
+    <video id="arjs-video" autoplay playsinline muted></video>
 
-        <a-marker type="pattern" url="pattern-marker.patt">
-            <a-text 
-                value="MAGNUM TALENTUM" 
-                align="center" 
-                color="#D4AF37" 
-                position="0 0.5 0" 
-                rotation="-90 0 0" 
-                width="6">
-            </a-text>
+<script>
+    const scene = new THREE.Scene();
+    const camera = new THREE.Camera();
+    scene.add(camera);
 
-            <a-entity id="vocal" sound="src: url(vocal.mp3); loop: true"></a-entity>
-            <a-entity id="bass" sound="src: url(bass.mp3); loop: true"></a-entity>
-            <a-entity id="drum" sound="src: url(drum.mp3); loop: true"></a-entity>
-            <a-entity id="other" sound="src: url(other.mp3); loop: true"></a-entity>
-        </a-marker>
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
 
-        <a-entity camera></a-entity>
-    </a-scene>
+    // L3 SOURCE: Povezivanje na postojeći video tag
+    const arToolkitSource = new THREEx.ArToolkitSource({
+        sourceType: 'webcam',
+        sourceWidth: 1280,
+        sourceHeight: 720,
+    });
 
-    <script>
-        const marker = document.querySelector('a-marker');
-        const sounds = document.querySelectorAll('[sound]');
+    arToolkitSource.init(function onReady(){
+        setTimeout(onResize, 500);
+    });
 
-        marker.addEventListener('markerFound', () => {
-            sounds.forEach(s => s.components.sound.playSound());
-        });
+    window.addEventListener('resize', onResize);
+    function onResize(){
+        arToolkitSource.onResizeElement();
+        arToolkitSource.copyElementSizeTo(renderer.domElement);
+        if(arToolkitContext.arController !== null){
+            arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas);
+        }	
+    }
 
-        marker.addEventListener('markerLost', () => {
-            sounds.forEach(s => s.components.sound.pauseSound());
-        });
+    const arToolkitContext = new THREEx.ArToolkitContext({
+        cameraParametersUrl: 'https://raw.githack.com/AR-js-org/AR.js/master/data/data/camera_para.dat',
+        detectionMode: 'mono',
+    });
 
-        // "Unlock" na prvi dodir bilo gde
-        window.addEventListener('click', () => {
-            sounds.forEach(s => {
-                const ctx = s.components.sound.audioContext;
-                if (ctx && ctx.state === 'suspended') ctx.resume();
-            });
-        }, { once: true });
-    </script>
+    arToolkitContext.init(function onCompleted(){
+        camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
+    });
+
+    const markerRoot = new THREE.Group();
+    scene.add(markerRoot);
+    new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
+        type: 'pattern',
+        patternUrl: 'pattern-marker.patt',
+    });
+
+    // AUDIO STEMS
+    const audioFiles = ['vocal.mp3', 'bass.mp3', 'drum.mp3', 'other.mp3'];
+    const stems = audioFiles.map(src => {
+        const a = new Audio(src);
+        a.loop = true;
+        a.crossOrigin = "anonymous";
+        return a;
+    });
+
+    let isVisible = false;
+    let unlocked = false;
+
+    window.addEventListener('touchstart', () => {
+        if(!unlocked){
+            stems.forEach(s => { s.play(); s.pause(); });
+            unlocked = true;
+        }
+    }, {once: true});
+
+    function animate() {
+        requestAnimationFrame(animate);
+        if (arToolkitSource.ready === false) return;
+        arToolkitContext.update(arToolkitSource.domElement);
+        
+        if (markerRoot.visible) {
+            if (!isVisible) {
+                stems.forEach(s => s.play().catch(e => {}));
+                isVisible = true;
+            }
+        } else {
+            if (isVisible) {
+                stems.forEach(s => s.pause());
+                isVisible = false;
+            }
+        }
+        renderer.render(scene, camera);
+    }
+    animate();
+</script>
 </body>
 </html>
