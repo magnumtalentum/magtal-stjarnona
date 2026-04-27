@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>MAGTAL Dev Lab - Eva Dahlgren AR</title>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
+  </head>
+  <body style="margin: 0px; overflow: hidden;">
+    <a-scene embedded arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;">
+      
+      <a-marker type="pattern" url="pattern-marker.patt">
+        <a-entity 
+          text="value: Vem tänder stjärnorna...; color: #D4AF37; align: center; width: 4;" 
+          position="0 0.5 0" rotation="-90 0 0">
+        </a-entity>
+      </a-marker>
+
+      <a-entity camera></a-entity>
+    </a-scene>
+
+    <script>
+      // AUDIO LOGIKA: Povezujemo tvoja 4 stema
+      var vocal = new Howl({ src: ['vocal.mp3'], loop: true });
+      var bass = new Howl({ src: ['bass.mp3'], loop: true });
+      var drum = new Howl({ src: ['drum.mp3'], loop: true });
+      var other = new Howl({ src: ['other.mp3'], loop: true });
+
+      var marker = document.querySelector("a-marker");
+
+      // Kada kamera vidi Evu:
+      marker.addEventListener("markerFound", function() {
+        vocal.play(); bass.play(); drum.play(); other.play();
+        console.log("MAGTAL: Arhiv aktiviran.");
+      });
+
+      // Kada se kamera skloni:
+      marker.addEventListener("markerLost", function() {
+        vocal.pause(); bass.pause(); drum.pause(); other.pause();
+      });
+    </script>
+  </body>
+</html>
