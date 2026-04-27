@@ -1,24 +1,26 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 </head>
 <body style="margin:0; overflow:hidden;">
-    <div id="start-overlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); color:gold; z-index:9999; display:flex; align-items:center; justify-content:center; font-size:24px; cursor:pointer;">
-        TAPNI DA OTKLJUČAŠ ZVUK (A ZATIM UPERI U SLIKU)
+    <div id="start-overlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); color:#D4AF37; z-index:9999; display:flex; align-items:center; justify-content:center; font-size:20px; font-family:sans-serif; text-align:center; cursor:pointer; padding:20px;">
+        MAGTAL: TAPNI ZA START <br> (I UPERI U SLIKU)
     </div>
 
-    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false; displayWidth: 1280; displayHeight: 720; canvasWidth: 1280; canvasHeight: 720;">
+        
         <a-assets>
-            <audio id="track1" src="vocal.mp3" preload="auto"></audio>
-            <audio id="track2" src="bass.mp3" preload="auto"></audio>
-            <audio id="track3" src="drum.mp3" preload="auto"></audio>
-            <audio id="track4" src="other.mp3" preload="auto"></audio>
+            <audio id="t1" src="vocal.mp3" preload="auto"></audio>
+            <audio id="t2" src="bass.mp3" preload="auto"></audio>
+            <audio id="t3" src="drum.mp3" preload="auto"></audio>
+            <audio id="t4" src="other.mp3" preload="auto"></audio>
         </a-assets>
 
         <a-marker type="pattern" url="pattern-marker.patt" id="eva-marker">
-            <a-box position="0 0.5 0" material="color: gold; opacity: 0.5;"></a-box>
+            <a-box position="0 0.5 0" material="color: #D4AF37; opacity: 0.5;" animation="property: rotation; to: 0 360 0; loop: true; dur: 4000"></a-box>
         </a-marker>
 
         <a-entity camera></a-entity>
@@ -26,26 +28,25 @@
 
     <script>
         const marker = document.querySelector('#eva-marker');
-        const tracks = ['track1', 'track2', 'track3', 'track4'].map(id => document.getElementById(id));
-        let audioContextUnlocked = false;
+        const tracks = [document.getElementById('t1'), document.getElementById('t2'), document.getElementById('t3'), document.getElementById('t4')];
+        let unlocked = false;
 
-        // 1. Prvi klik samo dozvoljava audio sistemu da radi
         document.getElementById('start-overlay').addEventListener('click', function() {
-            audioContextUnlocked = true;
+            unlocked = true;
             this.style.display = 'none';
+            // Inicijalni "tihi" play da se odobri audio context
+            tracks.forEach(t => { t.play(); t.pause(); });
         });
 
-        // 2. Kada marker uđe u kadar (UPERIŠ U SLIKU), pesma kreće
         marker.addEventListener('markerFound', () => {
-            if(audioContextUnlocked) {
+            if(unlocked) {
                 tracks.forEach(t => {
-                    t.currentTime = 0; // Krece ispocetka kad vidi sliku
+                    t.muted = false;
                     t.play();
                 });
             }
         });
 
-        // 3. Kada skloniš telefon sa slike, pesma staje
         marker.addEventListener('markerLost', () => {
             tracks.forEach(t => t.pause());
         });
