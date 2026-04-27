@@ -1,95 +1,63 @@
 <!DOCTYPE html>
-<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-<script src="https://raw.githack.com/AR-js-org/AR.js/master/three.js/build/ar.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<html>
+<head>
+    <title>MAGTAL AR</title>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <style>
+        /* Ovaj deo sprečava ludi zoom na Androidu */
+        #arjs-video {
+            width: 100vw !important;
+            height: 100vh !important;
+            margin-left: 0px !important;
+            object-fit: cover !important;
+        }
+    </style>
+</head>
+<body style="margin: 0px; overflow: hidden;">
+    <a-scene 
+        embedded 
+        vr-mode-ui="enabled: false"
+        arjs="sourceType: webcam; debugUIEnabled: false; trackingMethod: best;">
 
-<body style="margin: 0px; overflow: hidden; font-family: sans-serif;">
-    <div id="instruction" style="position: fixed; top: 10px; width: 100%; text-align: center; color: white; z-index: 10; background: rgba(0,0,0,0.5);">
-        Tapni ekran za zvuk & uperi u marker
-    </div>
+        <a-marker type="pattern" url="pattern-marker.patt">
+            <a-text 
+                value="MAGNUM TALENTUM" 
+                align="center" 
+                color="#D4AF37" 
+                position="0 0.5 0" 
+                rotation="-90 0 0" 
+                width="6">
+            </a-text>
+
+            <a-entity id="vocal" sound="src: url(vocal.mp3); loop: true"></a-entity>
+            <a-entity id="bass" sound="src: url(bass.mp3); loop: true"></a-entity>
+            <a-entity id="drum" sound="src: url(drum.mp3); loop: true"></a-entity>
+            <a-entity id="other" sound="src: url(other.mp3); loop: true"></a-entity>
+        </a-marker>
+
+        <a-entity camera></a-entity>
+    </a-scene>
 
     <script>
-        // Inicijalizacija scene
-        const scene = new THREE.Scene();
-        const camera = new THREE.Camera();
-        scene.add(camera);
+        const marker = document.querySelector('a-marker');
+        const sounds = document.querySelectorAll('[sound]');
 
-        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
-
-        // Setup AR.js
-        const arToolkitSource = new THREEx.ArToolkitSource({ sourceType: 'webcam' });
-        arToolkitSource.init(() => {
-            setTimeout(() => { onResize(); }, 2000);
+        marker.addEventListener('markerFound', () => {
+            sounds.forEach(s => s.components.sound.playSound());
         });
 
-        window.addEventListener('resize', () => { onResize(); });
-        function onResize() {
-            arToolkitSource.onResizeElement();
-            arToolkitSource.copyElementSizeTo(renderer.domElement);
-            if (arToolkitContext.arController !== null) {
-                arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas);
-            }
-        }
-
-        const arToolkitContext = new THREEx.ArToolkitContext({
-            cameraParametersUrl: 'https://raw.githack.com/AR-js-org/AR.js/master/data/data/camera_para.dat',
-            detectionMode: 'mono'
-        });
-        arToolkitContext.init(() => {
-            camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
+        marker.addEventListener('markerLost', () => {
+            sounds.forEach(s => s.components.sound.pauseSound());
         });
 
-        // Marker setup
-        const markerRoot = new THREE.Group();
-        scene.add(markerRoot);
-        const markerControls = new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
-            type: 'pattern', patternUrl: 'pattern-marker.patt',
-        });
-
-        // Audio setup
-        const audioFiles = ['vocal.mp3', 'bass.mp3', 'drum.mp3', 'other.mp3'];
-        const sounds = audioFiles.map(file => {
-            const audio = new Audio(file);
-            audio.loop = true;
-            return audio;
-        });
-
-        // Audio kontrola
-        let isPlaying = false;
+        // "Unlock" na prvi dodir bilo gde
         window.addEventListener('click', () => {
-            sounds.forEach(s => s.play().then(() => s.pause())); // Unlock
-            document.getElementById('instruction').style.display = 'none';
+            sounds.forEach(s => {
+                const ctx = s.components.sound.audioContext;
+                if (ctx && ctx.state === 'suspended') ctx.resume();
+            });
         }, { once: true });
-
-        function update() {
-            if (arToolkitSource.ready === false) return;
-            arToolkitContext.update(arToolkitSource.domElement);
-            
-            if (markerRoot.visible) {
-                if (!isPlaying) {
-                    sounds.forEach(s => s.play());
-                    isPlaying = true;
-                }
-            } else {
-                if (isPlaying) {
-                    sounds.forEach(s => s.pause());
-                    isPlaying = false;
-                }
-            }
-        }
-
-        function render() {
-            renderer.render(scene, camera);
-        }
-
-        function animate() {
-            requestAnimationFrame(animate);
-            update();
-            render();
-        }
-        animate();
     </script>
 </body>
 </html>
