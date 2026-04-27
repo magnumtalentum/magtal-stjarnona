@@ -1,63 +1,53 @@
 <!DOCTYPE html>
-<html lang="sr">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MAGTAL AR - Loretta Rinn</title>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-    <style>
-        #ar-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8); z-index: 9999;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            text-align: center; cursor: pointer;
-        }
-        .start-btn {
-            padding: 20px 40px; font-size: 24px; background: #D4AF37; border: none;
-            color: black; font-weight: bold; border-radius: 50px; margin-top: 20px;
-        }
-    </style>
 </head>
-<body style="margin: 0px; overflow: hidden;">
-
-    <div id="ar-overlay">
-        <h1>MAGTAL DEV LAB</h1>
-        <p>Spremno za interakciju</p>
-        <button class="start-btn">AKTIVIRAJ AR & ZVUK</button>
+<body style="margin:0; overflow:hidden;">
+    <div id="start-overlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); color:gold; z-index:9999; display:flex; align-items:center; justify-content:center; font-size:24px; cursor:pointer;">
+        TAPNI DA OTKLJUČAŠ ZVUK (A ZATIM UPERI U SLIKU)
     </div>
 
-    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false; trackingMethod: best;">
-        
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
         <a-assets>
-            <audio id="vocal" src="vocal.mp3" preload="auto"></audio>
-            <audio id="bass" src="bass.mp3" preload="auto"></audio>
-            <audio id="drum" src="drum.mp3" preload="auto"></audio>
-            <audio id="other" src="other.mp3" preload="auto"></audio>
+            <audio id="track1" src="vocal.mp3" preload="auto"></audio>
+            <audio id="track2" src="bass.mp3" preload="auto"></audio>
+            <audio id="track3" src="drum.mp3" preload="auto"></audio>
+            <audio id="track4" src="other.mp3" preload="auto"></audio>
         </a-assets>
 
-        <a-marker type="pattern" url="pattern-marker.patt">
-            <a-box position="0 0.5 0" material="color: #D4AF37; opacity: 0.6;" animation="property: rotation; to: 0 360 0; loop: true; dur: 5000"></a-box>
+        <a-marker type="pattern" url="pattern-marker.patt" id="eva-marker">
+            <a-box position="0 0.5 0" material="color: gold; opacity: 0.5;"></a-box>
         </a-marker>
 
         <a-entity camera></a-entity>
     </a-scene>
 
     <script>
-        const overlay = document.getElementById('ar-overlay');
-        const audioIds = ['vocal', 'bass', 'drum', 'other'];
-        const audios = audioIds.map(id => document.getElementById(id));
+        const marker = document.querySelector('#eva-marker');
+        const tracks = ['track1', 'track2', 'track3', 'track4'].map(id => document.getElementById(id));
+        let audioContextUnlocked = false;
 
-        overlay.addEventListener('click', () => {
-            // Unmute i pokretanje svih audio fajlova odjednom
-            audios.forEach(audio => {
-                audio.play();
-                // Ako želimo da zvuk krene tek kad se vidi marker, ovde bismo stavili pause, 
-                // ali za ovaj test puštamo sve odmah da potvrdimo prohodnost.
-            });
-            overlay.style.display = 'none';
-            console.log("L3 Protokol: Audio aktiviran.");
+        // 1. Prvi klik samo dozvoljava audio sistemu da radi
+        document.getElementById('start-overlay').addEventListener('click', function() {
+            audioContextUnlocked = true;
+            this.style.display = 'none';
+        });
+
+        // 2. Kada marker uđe u kadar (UPERIŠ U SLIKU), pesma kreće
+        marker.addEventListener('markerFound', () => {
+            if(audioContextUnlocked) {
+                tracks.forEach(t => {
+                    t.currentTime = 0; // Krece ispocetka kad vidi sliku
+                    t.play();
+                });
+            }
+        });
+
+        // 3. Kada skloniš telefon sa slike, pesma staje
+        marker.addEventListener('markerLost', () => {
+            tracks.forEach(t => t.pause());
         });
     </script>
 </body>
