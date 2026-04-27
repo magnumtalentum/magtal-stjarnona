@@ -1,37 +1,37 @@
 <!DOCTYPE html>
-<html lang="sr">
+<html>
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-    <title>MAGTAL_L3_PROT_V1</title>
+    <title>MAGTAL_L3_FINAL</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/three.js/build/ar.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #000; }
+        /* Force video element to be visible and correctly layered */
+        #arjs-video {
+            width: 100vw !important;
+            height: 100vh !important;
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            z-index: -1;
+            object-fit: cover;
+        }
+    </style>
 </head>
-<body style="margin: 0; overflow: hidden; background-color: #000;">
-
+<body>
 <script>
-    /** * INITIALIZATION: L3 Resource Control
-     */
     const scene = new THREE.Scene();
     const camera = new THREE.Camera();
     scene.add(camera);
 
-    const renderer = new THREE.WebGLRenderer({
-        antialias: true,
-        alpha: true,
-        precision: 'highp' // Forsiranje visoke preciznosti rendera
-    });
-    
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.domElement.style.position = 'absolute';
-    renderer.domElement.style.top = '0px';
-    renderer.domElement.style.left = '0px';
     document.body.appendChild(renderer.domElement);
 
-    /**
-     * AR TOOLKIT: Direct Camera Pipe (No Zoom)
-     */
+    // L3 SOURCE SETUP
     const arToolkitSource = new THREEx.ArToolkitSource({
         sourceType: 'webcam',
         sourceWidth: 1280,
@@ -40,92 +40,78 @@
         displayHeight: 720,
     });
 
-    arToolkitSource.init(() => {
+    arToolkitSource.init(function onReady(){
         setTimeout(onResize, 500);
     });
 
     window.addEventListener('resize', onResize);
-    function onResize() {
+    function onResize(){
         arToolkitSource.onResizeElement();
         arToolkitSource.copyElementSizeTo(renderer.domElement);
-        if (arToolkitContext.arController !== null) {
+        if(arToolkitContext.arController !== null){
             arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas);
-        }
+        }	
     }
 
-    /**
-     * AR CONTEXT: Matrix & Axis Fix
-     */
+    // L3 CONTEXT SETUP
     const arToolkitContext = new THREEx.ArToolkitContext({
         cameraParametersUrl: 'https://raw.githack.com/AR-js-org/AR.js/master/data/data/camera_para.dat',
         detectionMode: 'mono',
-        imageSmoothingEnabled: true,
-        maxDetectionRate: 60, // L3 standard za fluidnost
-        canvasWidth: 1280,
-        canvasHeight: 720,
     });
 
-    arToolkitContext.init(() => {
+    arToolkitContext.init(function onCompleted(){
         camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
     });
 
-    /**
-     * MARKER & ASSETS: Coordinate Lock
-     */
+    // MARKER CONTROL
     const markerRoot = new THREE.Group();
     scene.add(markerRoot);
-
     new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
         type: 'pattern',
-        patternUrl: 'pattern-marker.patt', // Tvoj .patt fajl
+        patternUrl: 'pattern-marker.patt',
     });
 
-    // Audio Assets
+    // AUDIO LOGIC
     const audioFiles = ['vocal.mp3', 'bass.mp3', 'drum.mp3', 'other.mp3'];
     const stems = audioFiles.map(src => {
         const a = new Audio(src);
         a.loop = true;
-        a.preload = 'auto';
+        a.crossOrigin = "anonymous";
         return a;
     });
 
-    /**
-     * EXECUTION: Logical Triggering
-     */
-    let isTracking = false;
-    let audioContextUnlocked = false;
+    let isVisible = false;
+    let unlocked = false;
 
-    // Handshake za mobilne browsere
     window.addEventListener('touchstart', () => {
-        if (!audioContextUnlocked) {
+        if(!unlocked){
             stems.forEach(s => { s.play(); s.pause(); });
-            audioContextUnlocked = true;
+            unlocked = true;
         }
-    }, { once: true });
-
-    function update() {
-        if (arToolkitSource.ready === false) return;
-        arToolkitContext.update(arToolkitSource.domElement);
-
-        if (markerRoot.visible) {
-            if (!isTracking) {
-                stems.forEach(s => s.play());
-                isTracking = true;
-            }
-        } else {
-            if (isTracking) {
-                stems.forEach(s => s.pause());
-                isTracking = false;
-            }
-        }
-    }
+    }, {once: true});
 
     function animate() {
         requestAnimationFrame(animate);
-        update();
+        if (arToolkitSource.ready === false) return;
+        arToolkitContext.update(arToolkitSource.domElement);
+        
+        // Finalna provera vidljivosti video elementa
+        const video = document.getElementById('arjs-video');
+        if (video) video.style.display = 'block';
+
+        if (markerRoot.visible) {
+            if (!isVisible) {
+                stems.forEach(s => s.play().catch(e => {}));
+                isVisible = true;
+            }
+        } else {
+            if (isVisible) {
+                stems.forEach(s => s.pause());
+                isVisible = false;
+            }
+        }
         renderer.render(scene, camera);
     }
-
     animate();
 </script>
 </body>
