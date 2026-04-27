@@ -1,85 +1,132 @@
 <!DOCTYPE html>
-<html>
+<html lang="sr">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>MAGTAL Dev Lab - FINAL AR</title>
-    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <title>MAGTAL_L3_PROT_V1</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/three.js/build/ar.js"></script>
 </head>
-<body style="margin: 0px; overflow: hidden;">
+<body style="margin: 0; overflow: hidden; background-color: #000;">
 
-    <a-scene 
-        embedded 
-        renderer="logarithmicDepthBuffer: true; antialias: true;"
-        vr-mode-ui="enabled: false"
-        arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3; trackingMethod: best;">
+<script>
+    /** * INITIALIZATION: L3 Resource Control
+     */
+    const scene = new THREE.Scene();
+    const camera = new THREE.Camera();
+    scene.add(camera);
 
-        <a-marker 
-            type="pattern" 
-            url="pattern-marker.patt"
-            smooth="true"
-            smoothCount="10"
-            smoothTolerance="0.01"
-            smoothThreshold="5">
-            
-            <a-text 
-                value="MAGNUM TALENTUM\nSTJARNONA AR ARCHIVE" 
-                align="center" 
-                color="#D4AF37" 
-                position="0 0.1 0" 
-                rotation="-90 0 0" 
-                width="4">
-            </a-text>
+    const renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        alpha: true,
+        precision: 'highp' // Forsiranje visoke preciznosti rendera
+    });
+    
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.domElement.style.position = 'absolute';
+    renderer.domElement.style.top = '0px';
+    renderer.domElement.style.left = '0px';
+    document.body.appendChild(renderer.domElement);
 
-            <a-entity id="v1" sound="src: url(vocal.mp3); loop: true; autoplay: false"></a-entity>
-            <a-entity id="v2" sound="src: url(bass.mp3); loop: true; autoplay: false"></a-entity>
-            <a-entity id="v3" sound="src: url(drum.mp3); loop: true; autoplay: false"></a-entity>
-            <a-entity id="v4" sound="src: url(other.mp3); loop: true; autoplay: false"></a-entity>
-            
-        </a-marker>
+    /**
+     * AR TOOLKIT: Direct Camera Pipe (No Zoom)
+     */
+    const arToolkitSource = new THREEx.ArToolkitSource({
+        sourceType: 'webcam',
+        sourceWidth: 1280,
+        sourceHeight: 720,
+        displayWidth: 1280,
+        displayHeight: 720,
+    });
 
-        <a-entity camera></a-entity>
-    </a-scene>
+    arToolkitSource.init(() => {
+        setTimeout(onResize, 500);
+    });
 
-    <script>
-        const marker = document.querySelector('a-marker');
-        const sounds = document.querySelectorAll('[sound]');
+    window.addEventListener('resize', onResize);
+    function onResize() {
+        arToolkitSource.onResizeElement();
+        arToolkitSource.copyElementSizeTo(renderer.domElement);
+        if (arToolkitContext.arController !== null) {
+            arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas);
+        }
+    }
 
-        // Glavna funkcija za zvuk
-        marker.addEventListener('markerFound', () => {
-            sounds.forEach(s => {
-                if (s.components.sound) {
-                    s.components.sound.playSound();
-                }
-            });
-        });
+    /**
+     * AR CONTEXT: Matrix & Axis Fix
+     */
+    const arToolkitContext = new THREEx.ArToolkitContext({
+        cameraParametersUrl: 'https://raw.githack.com/AR-js-org/AR.js/master/data/data/camera_para.dat',
+        detectionMode: 'mono',
+        imageSmoothingEnabled: true,
+        maxDetectionRate: 60, // L3 standard za fluidnost
+        canvasWidth: 1280,
+        canvasHeight: 720,
+    });
 
-        marker.addEventListener('markerLost', () => {
-            sounds.forEach(s => {
-                if (s.components.sound) {
-                    s.components.sound.pauseSound();
-                }
-            });
-        });
+    arToolkitContext.init(() => {
+        camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
+    });
 
-        // Force-fix za Android Chrome zoom i osu
-        window.addEventListener('resize', () => {
-            const scene = document.querySelector('a-scene');
-            if (scene && scene.systems.arjs) {
-                scene.systems.arjs.onResize();
+    /**
+     * MARKER & ASSETS: Coordinate Lock
+     */
+    const markerRoot = new THREE.Group();
+    scene.add(markerRoot);
+
+    new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
+        type: 'pattern',
+        patternUrl: 'pattern-marker.patt', // Tvoj .patt fajl
+    });
+
+    // Audio Assets
+    const audioFiles = ['vocal.mp3', 'bass.mp3', 'drum.mp3', 'other.mp3'];
+    const stems = audioFiles.map(src => {
+        const a = new Audio(src);
+        a.loop = true;
+        a.preload = 'auto';
+        return a;
+    });
+
+    /**
+     * EXECUTION: Logical Triggering
+     */
+    let isTracking = false;
+    let audioContextUnlocked = false;
+
+    // Handshake za mobilne browsere
+    window.addEventListener('touchstart', () => {
+        if (!audioContextUnlocked) {
+            stems.forEach(s => { s.play(); s.pause(); });
+            audioContextUnlocked = true;
+        }
+    }, { once: true });
+
+    function update() {
+        if (arToolkitSource.ready === false) return;
+        arToolkitContext.update(arToolkitSource.domElement);
+
+        if (markerRoot.visible) {
+            if (!isTracking) {
+                stems.forEach(s => s.play());
+                isTracking = true;
             }
-        });
+        } else {
+            if (isTracking) {
+                stems.forEach(s => s.pause());
+                isTracking = false;
+            }
+        }
+    }
 
-        // Jednokratni klik za aktivaciju audia
-        window.addEventListener('click', () => {
-            sounds.forEach(s => {
-                const ctx = s.components.sound.audioContext;
-                if (ctx && ctx.state === 'suspended') {
-                    ctx.resume();
-                }
-            });
-        }, { once: true });
-    </script>
+    function animate() {
+        requestAnimationFrame(animate);
+        update();
+        renderer.render(scene, camera);
+    }
+
+    animate();
+</script>
 </body>
 </html>
