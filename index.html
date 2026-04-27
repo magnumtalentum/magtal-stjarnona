@@ -1,27 +1,19 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>MAGTAL AR - CENTER FIX</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>MAGTAL Dev Lab - FINAL AR</title>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-    <style>
-        body { margin: 0; overflow: hidden; }
-        #arjs-video {
-            width: 100vw !important;
-            height: 100vh !important;
-            object-fit: cover !important;
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-        }
-    </style>
 </head>
 <body style="margin: 0px; overflow: hidden;">
+
     <a-scene 
         embedded 
+        renderer="logarithmicDepthBuffer: true; antialias: true;"
         vr-mode-ui="enabled: false"
-        arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono; trackingMethod: best;"
-        renderer="logarithmicDepthBuffer: true;">
+        arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3; trackingMethod: best;">
 
         <a-marker 
             type="pattern" 
@@ -32,44 +24,60 @@
             smoothThreshold="5">
             
             <a-text 
-                value="MAGNUM TALENTUM" 
+                value="MAGNUM TALENTUM\nSTJARNONA AR ARCHIVE" 
                 align="center" 
                 color="#D4AF37" 
-                position="0 0 0" 
+                position="0 0.1 0" 
                 rotation="-90 0 0" 
-                width="5">
+                width="4">
             </a-text>
 
-            <a-entity id="vocal" sound="src: url(vocal.mp3); loop: true; autoplay: false"></a-entity>
-            <a-entity id="bass" sound="src: url(bass.mp3); loop: true; autoplay: false"></a-entity>
-            <a-entity id="drum" sound="src: url(drum.mp3); loop: true; autoplay: false"></a-entity>
-            <a-entity id="other" sound="src: url(other.mp3); loop: true; autoplay: false"></a-entity>
+            <a-entity id="v1" sound="src: url(vocal.mp3); loop: true; autoplay: false"></a-entity>
+            <a-entity id="v2" sound="src: url(bass.mp3); loop: true; autoplay: false"></a-entity>
+            <a-entity id="v3" sound="src: url(drum.mp3); loop: true; autoplay: false"></a-entity>
+            <a-entity id="v4" sound="src: url(other.mp3); loop: true; autoplay: false"></a-entity>
             
         </a-marker>
 
-        <a-entity camera="fov: 80"></a-entity>
+        <a-entity camera></a-entity>
     </a-scene>
 
     <script>
         const marker = document.querySelector('a-marker');
         const sounds = document.querySelectorAll('[sound]');
 
+        // Glavna funkcija za zvuk
         marker.addEventListener('markerFound', () => {
             sounds.forEach(s => {
-                if(s.components.sound) s.components.sound.playSound();
+                if (s.components.sound) {
+                    s.components.sound.playSound();
+                }
             });
         });
 
         marker.addEventListener('markerLost', () => {
             sounds.forEach(s => {
-                if(s.components.sound) s.components.sound.pauseSound();
+                if (s.components.sound) {
+                    s.components.sound.pauseSound();
+                }
             });
         });
 
+        // Force-fix za Android Chrome zoom i osu
+        window.addEventListener('resize', () => {
+            const scene = document.querySelector('a-scene');
+            if (scene && scene.systems.arjs) {
+                scene.systems.arjs.onResize();
+            }
+        });
+
+        // Jednokratni klik za aktivaciju audia
         window.addEventListener('click', () => {
             sounds.forEach(s => {
                 const ctx = s.components.sound.audioContext;
-                if (ctx && ctx.state === 'suspended') ctx.resume();
+                if (ctx && ctx.state === 'suspended') {
+                    ctx.resume();
+                }
             });
         }, { once: true });
     </script>
