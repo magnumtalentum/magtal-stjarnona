@@ -1,334 +1,253 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>AR.js | Golden Cube + 4‑Channel Audio | MAGTAL_TEST</title>
-  <style>
-    body { margin: 0; overflow: hidden; font-family: system-ui, sans-serif; }
-    /* Overlay for unlocking audio (Chrome autoplay policy) */
-    #audio-unlock-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.7);
-      z-index: 1000;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      backdrop-filter: blur(4px);
-      font-family: inherit;
-      cursor: pointer;
-      transition: opacity 0.3s;
-    }
-    .unlock-btn {
-      background: #ffd700;
-      color: #1e1e1e;
-      border: none;
-      padding: 18px 36px;
-      font-size: 1.6rem;
-      font-weight: bold;
-      border-radius: 60px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.3);
-      letter-spacing: 1px;
-      cursor: pointer;
-    }
-    .hidden-overlay {
-      display: none !important;
-    }
-    /* Small hint (optional) */
-    #status-hint {
-      position: fixed;
-      bottom: 20px;
-      left: 0;
-      right: 0;
-      background: rgba(0,0,0,0.6);
-      color: gold;
-      text-align: center;
-      padding: 8px;
-      font-size: 12px;
-      z-index: 50;
-      pointer-events: none;
-      font-weight: bold;
-    }
-  </style>
-  <!-- A-Frame + AR.js -->
-  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/ar.js@2.2.2/aframe/build/aframe-ar.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>MAGTAL_TEST | AR Golden Cube + 4 Audio</title>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: sans-serif; }
+        #unlock-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+        }
+        .unlock-text {
+            background: #D4AF37;
+            color: #1e1e1e;
+            padding: 18px 36px;
+            border-radius: 60px;
+            font-size: 1.4rem;
+            font-weight: bold;
+            text-align: center;
+        }
+        .hint {
+            color: #ffd966;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+    </style>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ar.js@2.2.2/aframe/build/aframe-ar.min.js"></script>
 </head>
 <body>
 
-  <!-- 4 audio elements (preload, loop disabled – we control loop manually via event) -->
-  <audio id="audio-vocal" src="vocal.mp3" preload="auto"></audio>
-  <audio id="audio-bass" src="bass.mp3" preload="auto"></audio>
-  <audio id="audio-drum" src="drum.mp3" preload="auto"></audio>
-  <audio id="audio-other" src="other.mp3" preload="auto"></audio>
+    <!-- Overlay za otključavanje audio (Chrome autoplay) -->
+    <div id="unlock-overlay">
+        <div class="unlock-text">🔊 TAP TO ENABLE SOUND & CAMERA 🔊</div>
+        <div class="hint">🎯 Nakon toga uperi kameru u marker "pattern-marker.patt"</div>
+    </div>
 
-  <!-- Unlock overlay for Chrome autoplay -->
-  <div id="audio-unlock-overlay">
-    <button class="unlock-btn" id="unlock-btn">🔊 TAP TO ENABLE AUDIO 🔊</button>
-  </div>
-  <div id="status-hint">🔍 Point camera at marker "pattern-marker.patt" → Golden cube + 4‑track audio</div>
+    <!-- Audio elementi (preload) -->
+    <audio id="sound-vocal" src="vocal.mp3" preload="auto"></audio>
+    <audio id="sound-bass" src="bass.mp3" preload="auto"></audio>
+    <audio id="sound-drum" src="drum.mp3" preload="auto"></audio>
+    <audio id="sound-other" src="other.mp3" preload="auto"></audio>
 
-  <!-- AR Scene with forced high-res & zoom-lock for Samsung -->
-  <a-scene
-    id="ar-scene"
-    embedded
-    arjs="sourceType: webcam;
-           debugUIEnabled: false;
-           detectionMode: mono_and_matrix;
-           matrixCodeType: 3x3;
-           videoConstraints: {
-             width: { ideal: 1920, min: 1280 },
-             height: { ideal: 1080, min: 720 },
-             facingMode: 'environment',
-             zoom: 1.0,
-             resizeMode: 'crop-and-scale'
-           };
-           cameraParametersUrl: false;"
-    vr-mode-ui="enabled: false"
-    renderer="antialias: true; alpha: false"
-    device-orientation-permission-ui="enabled: false">
+    <!-- AR scena sa fiksnim zoomom i rezolucijom -->
+    <a-scene
+        id="ar-scene"
+        embedded
+        arjs="
+            sourceType: webcam;
+            debugUIEnabled: false;
+            detectionMode: mono_and_matrix;
+            matrixCodeType: 3x3;
+            cameraParametersUrl: false;
+            sourceWidth: 1280;
+            sourceHeight: 720;
+            displayWidth: 1280;
+            displayHeight: 720;
+            videoConstraints: {
+                width: { exact: 1280 },
+                height: { exact: 720 },
+                facingMode: 'environment',
+                zoom: 1.0
+            };
+        "
+        vr-mode-ui="enabled: false"
+        renderer="antialias: true"
+    >
+        <!-- Kamera sa dodatnim zabranama zumiranja -->
+        <a-camera id="ar-camera" active="true" user-height="1.6" position="0 0 0">
+            <!-- Onemogući pinch-to-zoom preko JavaScripta -->
+        </a-camera>
 
-    <!-- Camera node (prevents auto-zoom behaviours) -->
-    <a-camera id="main-camera" active="true" user-height="1.6" position="0 0 0"></a-camera>
+        <!-- Custom marker (pattern-marker.patt) -->
+        <a-marker
+            id="golden-marker"
+            type="pattern"
+            url="pattern-marker.patt"
+            raftexposure="true"
+            raftexposure-threshold="0.6"
+            patternRatio="0.8"
+        >
+            <!-- Zlatna poluprovidna kocka sa rotacijom -->
+            <a-box
+                position="0 0.6 0"
+                material="color: #D4AF37; opacity: 0.65; metalness: 0.8; roughness: 0.2; transparent: true"
+                animation="property: rotation; to: 0 360 0; loop: true; dur: 6000; easing: linear"
+            ></a-box>
+        </a-marker>
 
-    <!-- Custom pattern marker (pattern-marker.patt) -->
-    <a-marker
-      id="gold-marker"
-      type="pattern"
-      url="pattern-marker.patt"
-      raftexposure="true"
-      raftexposure-threshold="0.8">
+        <!-- Ambientno svjetlo -->
+        <a-light type="ambient" intensity="0.6" color="#FFF5E0"></a-light>
+        <a-light type="directional" position="1 2 1" intensity="1.2" color="#FFE4A0"></a-light>
+    </a-scene>
 
-      <!-- Golden semi‑transparent cube with smooth rotation -->
-      <a-entity
-        geometry="primitive: box; width: 1.2; height: 1.2; depth: 1.2"
-        material="color: #FFD700; opacity: 0.7; transparent: true; metalness: 0.85; roughness: 0.25; side: double"
-        animation="property: rotation; to: 0 360 0; loop: true; dur: 7000; easing: linear; startEvents: load">
-      </a-entity>
+    <script>
+        (function() {
+            const vocal = document.getElementById('sound-vocal');
+            const bass = document.getElementById('sound-bass');
+            const drum = document.getElementById('sound-drum');
+            const other = document.getElementById('sound-other');
+            const allAudios = [vocal, bass, drum, other];
 
-      <!-- Extra fill light to enhance gold reflection -->
-      <a-light type="point" intensity="0.8" position="1 2 1" color="#FFF0A0"></a-light>
-    </a-marker>
+            let audioUnlocked = false;
+            let markerVisible = false;
+            let resetOnNextPlay = false;
 
-    <!-- Ambient & directional lighting -->
-    <a-light type="ambient" intensity="0.5" color="#FFF5E0"></a-light>
-    <a-light type="directional" position="2 3 1" intensity="1.0" color="#FFE4B5"></a-light>
-  </a-scene>
+            // Overlay
+            const overlay = document.getElementById('unlock-overlay');
 
-  <script>
-    (function() {
-      // ---------- DOM elements ----------
-      const vocal    = document.getElementById('audio-vocal');
-      const bass     = document.getElementById('audio-bass');
-      const drum     = document.getElementById('audio-drum');
-      const other    = document.getElementById('audio-other');
-      const allAudios = [vocal, bass, drum, other];
-
-      const overlayDiv = document.getElementById('audio-unlock-overlay');
-      const unlockBtn  = document.getElementById('unlock-btn');
-
-      // State
-      let audioUnlocked = false;
-      let markerVisible = false;
-      let pendingPlay = false;    // if marker appears before unlock, we queue
-
-      // ---------- Helper: sync & play all 4 (reset to 0 for perfect sync on first start) ----------
-      // On marker found, we want to start from beginning if they are paused (or after unlock).
-      // However if marker lost & found again, we resume from the same position (no reset)
-      // That matches "simultano i sinhronizovano" – they stay aligned.
-      // But for first detection after unlock, we ensure all start together from time 0.
-      let firstPlayAfterUnlock = false;   // to reset on first play after unlock
-
-      async function playAllAudios(resetToZero = false) {
-        if (!audioUnlocked) {
-          pendingPlay = true;
-          return false;
-        }
-        if (!markerVisible) return false;
-
-        try {
-          if (resetToZero) {
-            // Reset all currentTime to 0 for perfect sync
-            allAudios.forEach(a => { a.currentTime = 0; });
-          }
-          // Promise.all to play simultaneously
-          const playPromises = allAudios.map(a => a.play());
-          await Promise.all(playPromises);
-          pendingPlay = false;
-          firstPlayAfterUnlock = false;
-          return true;
-        } catch (err) {
-          console.warn("Audio play error:", err);
-          // If still blocked, show overlay again
-          if (err.name === 'NotAllowedError') {
-            audioUnlocked = false;
-            overlayDiv.classList.remove('hidden-overlay');
-            pendingPlay = true;
-          }
-          return false;
-        }
-      }
-
-      function pauseAllAudios() {
-        allAudios.forEach(a => {
-          if (!a.paused) a.pause();
-        });
-      }
-
-      // ---------- Marker detection (AR.js events) ----------
-      const markerElem = document.getElementById('gold-marker');
-      if (markerElem) {
-        markerElem.addEventListener('markerFound', () => {
-          console.log('[AR] Marker FOUND → resume/start audio');
-          markerVisible = true;
-
-          if (!audioUnlocked) {
-            // show overlay and wait for user gesture
-            overlayDiv.classList.remove('hidden-overlay');
-            pendingPlay = true;
-            return;
-          }
-
-          // Audio unlocked: resume from where they were paused
-          // If they are at the end (near duration) or completely stopped, we might reset?
-          // But loop logic: we do NOT set loop attribute; we will manually re-trigger on ended?
-          // However to make them loop continuously while marker visible, we add ended event listener.
-          // So we ensure they restart if ended. But easier: listen for 'ended' and replay if markerVisible.
-          // BUT requirement: "kada se marker detektuje, audio se pokrene simultano" and pause on lost.
-          // It does not explicitly require infinite loop, but natural loop enhances experience.
-          // We'll set loop = false but on 'ended' we replay if markerVisible AND unlocked – that's like loop.
-          const anyPlaying = allAudios.some(a => !a.paused);
-          if (!anyPlaying) {
-            // No audio currently playing -> start from current times (may be at end, reset to 0 for consistent)
-            // Check if any audio is close to end (> duration-0.1) then reset all to 0 for fresh sync
-            const nearEnd = allAudios.some(a => a.duration && (a.currentTime >= a.duration - 0.1));
-            if (nearEnd || firstPlayAfterUnlock) {
-              playAllAudios(true);
-            } else {
-              playAllAudios(false);
-            }
-          } else {
-            // Already playing (should not happen because markerLost pauses), but keep playing
-            // ensure all are playing (if one stalled)
-            for (let a of allAudios) {
-              if (a.paused && markerVisible && audioUnlocked) a.play().catch(e=>console.log);
-            }
-          }
-        });
-
-        markerElem.addEventListener('markerLost', () => {
-          console.log('[AR] Marker LOST → pausing all audio');
-          markerVisible = false;
-          pauseAllAudios();
-        });
-      } else {
-        console.error('Marker element not found! Check ID.');
-      }
-
-      // ---------- Handle audio ended events: when marker is visible, replay from 0 to keep loop sync ----------
-      function setupEndedHandlers() {
-        allAudios.forEach(audio => {
-          audio.addEventListener('ended', () => {
-            if (markerVisible && audioUnlocked) {
-              // When any audio ends, we need to restart ALL together from 0 to maintain perfect sync
-              // But avoid multiple triggers: use requestAnimationFrame to reset all only once per ended cycle.
-              if (!window._restartScheduled) {
-                window._restartScheduled = true;
-                requestAnimationFrame(() => {
-                  if (markerVisible && audioUnlocked) {
-                    // Reset all to 0 and play simultaneously
-                    const allPaused = allAudios.every(a => a.paused);
-                    if (allPaused || true) {
-                      playAllAudios(true).finally(() => { window._restartScheduled = false; });
-                    } else {
-                      window._restartScheduled = false;
+            // Funkcija za istovremeno puštanje svih audio zapisa
+            async function playAllAudios(resetToZero = false) {
+                if (!audioUnlocked || !markerVisible) return false;
+                try {
+                    if (resetToZero) {
+                        allAudios.forEach(a => { a.currentTime = 0; });
                     }
-                  } else {
-                    window._restartScheduled = false;
-                  }
-                });
-              }
+                    await Promise.all(allAudios.map(a => a.play()));
+                    return true;
+                } catch(e) {
+                    console.warn("Audio play greška:", e);
+                    if (e.name === 'NotAllowedError') {
+                        audioUnlocked = false;
+                        overlay.style.display = 'flex';
+                    }
+                    return false;
+                }
             }
-          });
-        });
-      }
-      setupEndedHandlers();
 
-      // ---------- Chrome Autoplay Workaround: unlock via user gesture ----------
-      function unlockAudioAndStart() {
-        if (audioUnlocked) return;
+            function pauseAllAudios() {
+                allAudios.forEach(a => { if (!a.paused) a.pause(); });
+            }
 
-        audioUnlocked = true;
-        firstPlayAfterUnlock = true;
-        overlayDiv.classList.add('hidden-overlay');
+            // Kada se marker pronađe
+            const marker = document.getElementById('golden-marker');
+            if (marker) {
+                marker.addEventListener('markerFound', () => {
+                    console.log('✅ Marker detektovan');
+                    markerVisible = true;
+                    if (!audioUnlocked) {
+                        // Čekamo da korisnik otključa
+                        return;
+                    }
+                    // Ako je neki audio završio ili je sve pauzirano, resetuj na 0
+                    const anyPlaying = allAudios.some(a => !a.paused);
+                    const anyEnded = allAudios.some(a => a.currentTime >= a.duration - 0.05);
+                    if (!anyPlaying || anyEnded || resetOnNextPlay) {
+                        playAllAudios(true);
+                        resetOnNextPlay = false;
+                    } else {
+                        playAllAudios(false);
+                    }
+                });
 
-        // Preload metadata and prepare
-        allAudios.forEach(a => { a.load(); a.volume = 1.0; });
+                marker.addEventListener('markerLost', () => {
+                    console.log('❌ Marker izgubljen');
+                    markerVisible = false;
+                    pauseAllAudios();
+                });
+            }
 
-        // If marker is currently visible, start synced playback from 0
-        if (markerVisible) {
-          playAllAudios(true).catch(e => console.warn);
-        } else if (pendingPlay) {
-          pendingPlay = false;
-          // Wait until marker appears - will be triggered by markerFound
-        }
-      }
+            // Kad bilo koji audio dođe do kraja, resetuj sve na nulu i restartuj (ako je marker i dalje vidljiv)
+            function setupLoopHandler() {
+                let restartScheduled = false;
+                allAudios.forEach(audio => {
+                    audio.addEventListener('ended', () => {
+                        if (markerVisible && audioUnlocked && !restartScheduled) {
+                            restartScheduled = true;
+                            setTimeout(() => {
+                                if (markerVisible && audioUnlocked) {
+                                    playAllAudios(true);
+                                }
+                                restartScheduled = false;
+                            }, 50);
+                        }
+                    });
+                });
+            }
+            setupLoopHandler();
 
-      // Attach unlock listeners (click/touch on overlay or button)
-      const unlockHandler = (e) => {
-        e.preventDefault();
-        unlockAudioAndStart();
-        // Remove listeners after unlock
-        overlayDiv.removeEventListener('click', unlockHandler);
-        if (unlockBtn) unlockBtn.removeEventListener('click', unlockHandler);
-        document.removeEventListener('touchstart', unlockHandler);
-        document.removeEventListener('click', unlockHandler);
-      };
+            // Otključavanje audio na korisnikov tap
+            function unlockAndStart() {
+                if (audioUnlocked) return;
+                audioUnlocked = true;
+                resetOnNextPlay = true;
+                overlay.style.display = 'none';
 
-      overlayDiv.addEventListener('click', unlockHandler);
-      if (unlockBtn) unlockBtn.addEventListener('click', unlockHandler);
-      // Also global fallback in case overlay is not clicked (extra safety)
-      document.addEventListener('touchstart', unlockHandler, { once: true });
-      document.addEventListener('click', unlockHandler, { once: true });
+                // "Null" play da aktivira audio context
+                allAudios.forEach(a => { a.load(); a.volume = 1.0; a.play().then(() => a.pause()).catch(e=>{}); });
 
-      // ---------- Samsung / Mobile camera fix: prevent zoom and enforce resolution ----------
-      // Additional low-level override: after AR.js initializes, lock constraints again
-      const sceneEl = document.querySelector('a-scene');
-      if (sceneEl) {
-        sceneEl.addEventListener('renderstart', () => {
-          console.log('[AR] Scene ready – forcing high-res camera constraints');
-          const arSystem = sceneEl.systems['arjs'];
-          if (arSystem && arSystem.controls && arSystem.controls._videoTrack) {
-            try {
-              const track = arSystem.controls._videoTrack;
-              const capabilities = track.getCapabilities();
-              if (capabilities.width && capabilities.height) {
-                track.applyConstraints({ width: { ideal: 1920 }, height: { ideal: 1080 }, zoom: 1.0 })
-                  .catch(e => console.warn('constraint apply failed', e));
-              }
-            } catch(e) { console.warn(e); }
-          }
-          // Prevent pinch-zoom on canvas surface
-          const canvas = document.querySelector('canvas.a-canvas');
-          if (canvas) {
-            canvas.addEventListener('touchmove', (e) => {
-              if (e.touches.length >= 2) e.preventDefault();
-            }, { passive: false });
-          }
-        });
-      }
+                // Ako je marker već vidljiv (što nije vjerovatno prije otključavanja), pokreni zvuk
+                if (markerVisible) {
+                    playAllAudios(true);
+                }
+            }
 
-      // Small fallback: if overlay remains due to any error, ensure removal after first user tap anywhere
-      window.addEventListener('load', () => {
-        // ensure audio elements are ready
-        allAudios.forEach(a => a.load());
-        // If marker not automatically detected, nothing else needed.
-      });
-    })();
-  </script>
+            overlay.addEventListener('click', unlockAndStart);
+            // Dodatno: tap bilo gdje (sigurnosno)
+            document.body.addEventListener('touchstart', unlockAndStart, { once: true });
+            document.body.addEventListener('click', unlockAndStart, { once: true });
+
+            // ---- PRISILNO POPRAVI KAMERU (ZOOM = 1.0) ----
+            // Nakon što se scena učita, primijeni dodatna ograničenja na video track
+            const scene = document.querySelector('a-scene');
+            scene.addEventListener('renderstart', async () => {
+                console.log('AR scena spremna, popravljam zoom kamere...');
+                // Pokušaj dohvatiti video element iz AR.js sistema
+                let video = null;
+                const arSystem = scene.systems['arjs'];
+                if (arSystem && arSystem.controls && arSystem.controls._videoElement) {
+                    video = arSystem.controls._videoElement;
+                } else {
+                    // Fallback: potraži video element
+                    video = document.querySelector('video');
+                }
+                if (video && video.srcObject) {
+                    const track = video.srcObject.getVideoTracks()[0];
+                    if (track && track.applyConstraints) {
+                        try {
+                            await track.applyConstraints({
+                                width: { exact: 1280 },
+                                height: { exact: 720 },
+                                advanced: [{ zoom: 1.0 }]
+                            });
+                            console.log('✅ Zoom postavljen na 1.0, rezolucija 1280x720');
+                        } catch(err) {
+                            console.warn('Nije moguće primijeniti zoom constraints:', err);
+                        }
+                    }
+                }
+                // Onemogući pinch-to-zoom na canvasu
+                const canvas = document.querySelector('canvas');
+                if (canvas) {
+                    canvas.addEventListener('touchmove', (e) => {
+                        if (e.touches.length >= 2) e.preventDefault();
+                    }, { passive: false });
+                }
+            });
+        })();
+    </script>
 </body>
 </html>
