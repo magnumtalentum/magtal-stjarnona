@@ -1,72 +1,95 @@
 <!DOCTYPE html>
-<html>
-<head>
-    <title>MAGTAL Dev Lab - STJARNONA AR</title>
-    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-</head>
-<body style="margin: 0px; overflow: hidden;">
+<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+<script src="https://raw.githack.com/AR-js-org/AR.js/master/three.js/build/ar.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
-    <a-scene 
-        embedded 
-        vr-mode-ui="enabled: false"
-        arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; trackingMethod: best;">
-
-        <a-marker type="pattern" url="pattern-marker.patt">
-            
-            <a-text 
-                value="MAGNUM TALENTUM\nSTJARNONA AR ARCHIVE" 
-                align="center" 
-                color="#D4AF37" 
-                position="0 0.5 0" 
-                rotation="-90 0 0" 
-                width="4"
-                font="https://cdn.aframe.io/fonts/Exo2Bold.fnt">
-            </a-text>
-
-            <a-entity id="track1" sound="src: url(vocal.mp3); autoplay: false; loop: true; volume: 1"></a-entity>
-            <a-entity id="track2" sound="src: url(bass.mp3); autoplay: false; loop: true; volume: 1"></a-entity>
-            <a-entity id="track3" sound="src: url(drum.mp3); autoplay: false; loop: true; volume: 1"></a-entity>
-            <a-entity id="track4" sound="src: url(other.mp3); autoplay: false; loop: true; volume: 1"></a-entity>
-            
-        </a-marker>
-
-        <a-entity camera></a-entity>
-    </a-scene>
+<body style="margin: 0px; overflow: hidden; font-family: sans-serif;">
+    <div id="instruction" style="position: fixed; top: 10px; width: 100%; text-align: center; color: white; z-index: 10; background: rgba(0,0,0,0.5);">
+        Tapni ekran za zvuk & uperi u marker
+    </div>
 
     <script>
-        const marker = document.querySelector('a-marker');
-        // Selektujemo sve entitete koji imaju sound komponentu
-        const sounds = document.querySelectorAll('[sound]');
+        // Inicijalizacija scene
+        const scene = new THREE.Scene();
+        const camera = new THREE.Camera();
+        scene.add(camera);
 
-        // Funkcija koja pušta sve zvukove sinhronizovano
-        marker.addEventListener('markerFound', () => {
-            sounds.forEach(s => {
-                if(s.components.sound) {
-                    s.components.sound.playSound();
-                }
-            });
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Setup AR.js
+        const arToolkitSource = new THREEx.ArToolkitSource({ sourceType: 'webcam' });
+        arToolkitSource.init(() => {
+            setTimeout(() => { onResize(); }, 2000);
         });
 
-        // Funkcija koja pauzira sve zvukove kada se marker izgubi
-        marker.addEventListener('markerLost', () => {
-            sounds.forEach(s => {
-                if(s.components.sound) {
-                    s.components.sound.pauseSound();
-                }
-            });
+        window.addEventListener('resize', () => { onResize(); });
+        function onResize() {
+            arToolkitSource.onResizeElement();
+            arToolkitSource.copyElementSizeTo(renderer.domElement);
+            if (arToolkitContext.arController !== null) {
+                arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas);
+            }
+        }
+
+        const arToolkitContext = new THREEx.ArToolkitContext({
+            cameraParametersUrl: 'https://raw.githack.com/AR-js-org/AR.js/master/data/data/camera_para.dat',
+            detectionMode: 'mono'
+        });
+        arToolkitContext.init(() => {
+            camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
         });
 
-        // "Magični" klik za otključavanje audia na mobilnim telefonima
+        // Marker setup
+        const markerRoot = new THREE.Group();
+        scene.add(markerRoot);
+        const markerControls = new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
+            type: 'pattern', patternUrl: 'pattern-marker.patt',
+        });
+
+        // Audio setup
+        const audioFiles = ['vocal.mp3', 'bass.mp3', 'drum.mp3', 'other.mp3'];
+        const sounds = audioFiles.map(file => {
+            const audio = new Audio(file);
+            audio.loop = true;
+            return audio;
+        });
+
+        // Audio kontrola
+        let isPlaying = false;
         window.addEventListener('click', () => {
-            sounds.forEach(s => {
-                if (s.components.sound && s.components.sound.audioContext) {
-                    if (s.components.sound.audioContext.state === 'suspended') {
-                        s.components.sound.audioContext.resume();
-                    }
-                }
-            });
+            sounds.forEach(s => s.play().then(() => s.pause())); // Unlock
+            document.getElementById('instruction').style.display = 'none';
         }, { once: true });
+
+        function update() {
+            if (arToolkitSource.ready === false) return;
+            arToolkitContext.update(arToolkitSource.domElement);
+            
+            if (markerRoot.visible) {
+                if (!isPlaying) {
+                    sounds.forEach(s => s.play());
+                    isPlaying = true;
+                }
+            } else {
+                if (isPlaying) {
+                    sounds.forEach(s => s.pause());
+                    isPlaying = false;
+                }
+            }
+        }
+
+        function render() {
+            renderer.render(scene, camera);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            update();
+            render();
+        }
+        animate();
     </script>
 </body>
 </html>
