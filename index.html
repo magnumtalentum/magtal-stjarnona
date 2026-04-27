@@ -1,288 +1,55 @@
 <!DOCTYPE html>
-<html lang="hr">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MAGTAL_TEST | AR Golden Cube + 4 Audio (Samsung fix - no zoom)</title>
-    <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-            font-family: system-ui, 'Segoe UI', monospace;
-        }
-        #overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.9);
-            backdrop-filter: blur(8px);
-            z-index: 10000;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            color: #D4AF37;
-            text-align: center;
-        }
-        .btn {
-            background: #D4AF37;
-            color: #1e1e1e;
-            padding: 18px 36px;
-            border-radius: 60px;
-            font-size: 1.6rem;
-            font-weight: bold;
-            margin: 20px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.3);
-        }
-        .info {
-            font-size: 1rem;
-            opacity: 0.9;
-            background: rgba(0,0,0,0.6);
-            padding: 8px 16px;
-            border-radius: 30px;
-        }
-        .status {
-            position: fixed;
-            bottom: 15px;
-            left: 0;
-            right: 0;
-            text-align: center;
-            color: gold;
-            background: rgba(0,0,0,0.5);
-            padding: 5px;
-            font-size: 12px;
-            z-index: 50;
-            pointer-events: none;
-        }
-    </style>
-    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/ar.js@2.2.2/aframe/build/aframe-ar.min.js"></script>
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 </head>
-<body>
-
-    <div id="overlay">
-        <div class="btn">🔊 TAP ZA POKRETANJE 🔊</div>
-        <div class="info">Nakon tapa, uperi kameru u marker <strong>pattern-marker.patt</strong></div>
+<body style="margin:0; overflow:hidden;">
+    <div id="start-overlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); color:#D4AF37; z-index:9999; display:flex; align-items:center; justify-content:center; font-size:20px; font-family:sans-serif; text-align:center; cursor:pointer; padding:20px;">
+        MAGTAL: TAPNI ZA START <br> (I UPERI U SLIKU)
     </div>
-    <div class="status" id="statusMsg">⏳ Priprema kamere...</div>
 
-    <!-- Audio elementi (preload) -->
-    <audio id="audio-vocal" src="vocal.mp3" preload="auto"></audio>
-    <audio id="audio-bass" src="bass.mp3" preload="auto"></audio>
-    <audio id="audio-drum" src="drum.mp3" preload="auto"></audio>
-    <audio id="audio-other" src="other.mp3" preload="auto"></audio>
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false; displayWidth: 1280; displayHeight: 720; canvasWidth: 1280; canvasHeight: 720;">
+        
+        <a-assets>
+            <audio id="t1" src="vocal.mp3" preload="auto"></audio>
+            <audio id="t2" src="bass.mp3" preload="auto"></audio>
+            <audio id="t3" src="drum.mp3" preload="auto"></audio>
+            <audio id="t4" src="other.mp3" preload="auto"></audio>
+        </a-assets>
 
-    <!-- AR scena – bez videoConstraints, jer ćemo ručno dodijeliti video stream -->
-    <a-scene
-        id="scene"
-        embedded
-        arjs="
-            sourceType: webcam;
-            debugUIEnabled: false;
-            detectionMode: mono_and_matrix;
-            matrixCodeType: 3x3;
-            cameraParametersUrl: false;
-            patternRatio: 0.7;
-            smooth: true;
-        "
-        vr-mode-ui="enabled: false"
-    >
-        <a-camera id="ar-camera" active="true"></a-camera>
-
-        <!-- Custom marker -->
-        <a-marker
-            id="gold-marker"
-            type="pattern"
-            url="pattern-marker.patt"
-        >
-            <!-- Zlatna poluprovidna kocka sa rotacijom -->
-            <a-box
-                position="0 0.5 0"
-                material="color: #D4AF37; opacity: 0.7; metalness: 0.9; roughness: 0.2; transparent: true"
-                animation="property: rotation; to: 0 360 0; loop: true; dur: 6000; easing: linear"
-            ></a-box>
+        <a-marker type="pattern" url="pattern-marker.patt" id="eva-marker">
+            <a-box position="0 0.5 0" material="color: #D4AF37; opacity: 0.5;" animation="property: rotation; to: 0 360 0; loop: true; dur: 4000"></a-box>
         </a-marker>
 
-        <a-light type="ambient" intensity="0.6"></a-light>
-        <a-light type="directional" position="1 2 1" intensity="1.2"></a-light>
+        <a-entity camera></a-entity>
     </a-scene>
 
     <script>
-        (function() {
-            // Audio elementi
-            const vocal = document.getElementById('audio-vocal');
-            const bass = document.getElementById('audio-bass');
-            const drum = document.getElementById('audio-drum');
-            const other = document.getElementById('audio-other');
-            const allAudios = [vocal, bass, drum, other];
-            
-            let audioUnlocked = false;
-            let markerVisible = false;
-            let cameraStream = null;
-            let videoElement = null; // video element koji koristi AR.js
-            const statusDiv = document.getElementById('statusMsg');
-            const overlay = document.getElementById('overlay');
+        const marker = document.querySelector('#eva-marker');
+        const tracks = [document.getElementById('t1'), document.getElementById('t2'), document.getElementById('t3'), document.getElementById('t4')];
+        let unlocked = false;
 
-            // 1. Funkcija za kameru – bez zoom-a, fiksna rezolucija
-            async function initCamera() {
-                try {
-                    // Za Samsung: 640x480 je sigurno, 1280x720 može izazvati zum
-                    const constraints = {
-                        video: {
-                            width: { exact: 640 },
-                            height: { exact: 480 },
-                            facingMode: 'environment',
-                            zoom: 1.0   // eksplicitno 1.0
-                        },
-                        audio: false
-                    };
-                    const stream = await navigator.mediaDevices.getUserMedia(constraints);
-                    cameraStream = stream;
-                    
-                    // Pronađi video element koji koristi AR.js (on se kreira nakon renderstart)
-                    let attempts = 0;
-                    const findVideo = setInterval(() => {
-                        const video = document.querySelector('video');
-                        if (video && video !== videoElement) {
-                            videoElement = video;
-                            videoElement.srcObject = stream;
-                            videoElement.play().catch(e => console.warn(e));
-                            statusDiv.innerText = "✅ Kamera spremna (bez zoom-a)";
-                            clearInterval(findVideo);
-                        }
-                        attempts++;
-                        if (attempts > 50) clearInterval(findVideo);
-                    }, 100);
-                    
-                    // Dodatno: spriječi AR.js da ponovo traži kameru
-                    const scene = document.getElementById('scene');
-                    if (scene && scene.systems && scene.systems['arjs']) {
-                        const arSystem = scene.systems['arjs'];
-                        if (arSystem.controls) {
-                            // Onemogući AR.js da sam bira kameru
-                            arSystem.controls._getUserMedia = () => Promise.resolve(stream);
-                        }
-                    }
-                } catch (err) {
-                    console.error("Greška pri pristupu kameri:", err);
-                    statusDiv.innerText = "⚠️ Greška: nema pristupa kameri. Provjerite dozvole.";
-                }
-            }
+        document.getElementById('start-overlay').addEventListener('click', function() {
+            unlocked = true;
+            this.style.display = 'none';
+            // Inicijalni "tihi" play da se odobri audio context
+            tracks.forEach(t => { t.play(); t.pause(); });
+        });
 
-            // 2. Audio sinhronizacija
-            async function playAllAudios(resetToZero = false) {
-                if (!audioUnlocked || !markerVisible) return false;
-                try {
-                    if (resetToZero) {
-                        allAudios.forEach(a => { a.currentTime = 0; });
-                    }
-                    await Promise.all(allAudios.map(a => a.play()));
-                    return true;
-                } catch(e) {
-                    console.warn("Audio play error:", e);
-                    if (e.name === 'NotAllowedError') {
-                        audioUnlocked = false;
-                        overlay.style.display = 'flex';
-                    }
-                    return false;
-                }
-            }
-
-            function pauseAllAudios() {
-                allAudios.forEach(a => { if (!a.paused) a.pause(); });
-            }
-
-            // 3. Marker eventi
-            const marker = document.getElementById('gold-marker');
-            if (marker) {
-                marker.addEventListener('markerFound', () => {
-                    console.log("🔍 Marker detektovan");
-                    markerVisible = true;
-                    if (audioUnlocked) {
-                        // Ako je marker pronađen i audio otključan, pokreni zvuk od početka (ili nastavi)
-                        const anyPlaying = allAudios.some(a => !a.paused);
-                        if (!anyPlaying) {
-                            playAllAudios(true);
-                        } else {
-                            playAllAudios(false);
-                        }
-                        statusDiv.innerText = "🎵 Marker aktivan – audio svira";
-                    } else {
-                        statusDiv.innerText = "🔍 Marker detektovan – tapnite za zvuk";
-                    }
-                });
-                
-                marker.addEventListener('markerLost', () => {
-                    console.log("❌ Marker izgubljen");
-                    markerVisible = false;
-                    pauseAllAudios();
-                    statusDiv.innerText = "🔴 Marker izgubljen – audio pauziran";
+        marker.addEventListener('markerFound', () => {
+            if(unlocked) {
+                tracks.forEach(t => {
+                    t.muted = false;
+                    t.play();
                 });
             }
+        });
 
-            // 4. Loop na kraju pjesme
-            allAudios.forEach(audio => {
-                audio.addEventListener('ended', () => {
-                    if (markerVisible && audioUnlocked) {
-                        playAllAudios(true);
-                    }
-                });
-            });
-
-            // 5. Otključavanje zvuka i pokretanje svega
-            async function unlockAndStart() {
-                if (audioUnlocked) return;
-                audioUnlocked = true;
-                overlay.style.display = 'none';
-                statusDiv.innerText = "🎤 Otključavanje zvuka...";
-                
-                // "Tihi" play da se aktivira audio context
-                for (let a of allAudios) {
-                    a.load();
-                    a.volume = 1.0;
-                    try {
-                        await a.play();
-                        a.pause();
-                    } catch(e) {}
-                }
-                
-                // Pokreni kameru (ako već nije)
-                if (!cameraStream) {
-                    statusDiv.innerText = "📷 Pokretanje kamere (bez zoom-a)...";
-                    await initCamera();
-                } else {
-                    statusDiv.innerText = "✅ Kamera već aktivna";
-                }
-                
-                // Ako je marker već vidljiv (rijetkost), pokreni zvuk
-                if (markerVisible) {
-                    playAllAudios(true);
-                }
-            }
-            
-            overlay.addEventListener('click', unlockAndStart);
-            // Sigurnosni capture na touch i click
-            document.body.addEventListener('touchstart', unlockAndStart, { once: true });
-            document.body.addEventListener('click', unlockAndStart, { once: true });
-            
-            // Spriječi pinch-to-zoom na canvasu
-            const canvas = document.querySelector('canvas');
-            if (canvas) {
-                canvas.addEventListener('touchmove', (e) => {
-                    if (e.touches.length >= 2) e.preventDefault();
-                }, { passive: false });
-            }
-            
-            // Pomoćna: Ako scena nije pokrenuta za 3 sekunde, prikaži upozorenje
-            setTimeout(() => {
-                if (!audioUnlocked) {
-                    statusDiv.innerText = "📱 Zvuk je blokiran – tapnite na ekran za pokretanje";
-                }
-            }, 2000);
-        })();
+        marker.addEventListener('markerLost', () => {
+            tracks.forEach(t => t.pause());
+        });
     </script>
 </body>
 </html>
